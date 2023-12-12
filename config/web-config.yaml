@@ -1,0 +1,3 @@
+basic_auth_users:
+  admin: $2y$10$K7gXeAs0VbhjHMdlV1Hn0OlWcqIoK7P9s/dVKB3HoyYcLuscxSpXe # change "$2y$10..." to basic auth password hash
+  bobi: $2y$10$1sYkKxi49lGpFdlu7aDkTeWkzvkqaeCTb4PDBR/pNxeETO8N3shZS # you can add more users

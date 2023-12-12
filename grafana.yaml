@@ -1,0 +1,153 @@
+version: "3"
+
+services:
+
+  grafana:
+    image: "grafana/grafana-oss:10.2.2"
+    ports:
+      - 3000:3000
+    volumes:
+      # touch /mnt/common_volume/grafana/grafana-config/grafana.ini;
+      # mkdir -p /mnt/common_volume/grafana/{grafana-config,grafana-data};
+      - /mnt/common_volume/grafana/grafana-config:/etc/grafana
+      - /mnt/common_volume/grafana/grafana-data:/var/lib/grafana
+    user: "root"
+    environment:
+      # Uncomment GF_SERVER_DOMAIN, GF_SERVER_ROOT_URL for using reserve proxy
+      #GF_SERVER_DOMAIN: "grafana.domain.example" # change "grafana.domain.example" to your domain
+      #GF_SERVER_ROOT_URL: "https://grafana.domain.example/" # change "grafana.domain.example" to your domain
+      GF_RENDERING_SERVER_URL: "http://grafana-image-renderer:8081/render"
+      GF_RENDERING_CALLBACK_URL: "http://grafana:3000/"
+      GF_UNIFIED_ALERTING_SCREENSHOTS_CAPTURE: "true"
+      GF_LOG_FILTERS: "rendering:debug"
+      # Uncomment for using PostgreSQL (recommended) instead SQLite
+      #GF_DATABASE_TYPE: "postgres"
+      #GF_DATABASE_HOST: "postgres:5432" # change "postgres:5432" to your PostgreSQL database host and port
+      #GF_DATABASE_NAME: "postgres" # change "postgres" to your database name
+      #GF_DATABASE_USER: "postgres" # change "postgres" to your database user name
+      #GF_DATABASE_PASSWORD: "postgres" change "postgres" to your database password # or use GF_DATABASE_PASSWORD
+      #GF_DATABASE_PASSWORD__FILE: "/run/secrets/grafana_database_password" # for docker secrets # or use GF_DATABASE_PASSWORD
+      #GF_DATABASE_SSL_MODE: "disable"
+    # Uncomment for using docker secrets 
+    #secrets:
+    #  - grafana_database_password
+    deploy:
+      mode: replicated
+      replicas: 1
+      update_config:
+        order: stop-first
+      resources:
+        limits:
+          memory: 1024M
+          
+  grafana-image-renderer:
+    image: "grafana/grafana-image-renderer:3.9.0"
+    environment:
+      TZ: "Europe/Moscow" # change to your timezone
+    deploy:
+      mode: replicated
+      replicas: 1
+      update_config:
+        order: start-first
+      resources:
+        limits:
+          memory: 1024M
+          
+  prometheus:
+    image: "prom/prometheus:v2.48.0"
+    ports:
+      - 9090:9090
+    volumes:
+      # touch /mnt/common_volume/swarm/grafana/config/{prometheus.yaml,web-config.yaml};
+      # mkdir -p /mnt/common_volume/grafana/prometheus-data
+      - /mnt/common_volume/swarm/grafana/config/prometheus.yaml:/etc/prometheus/prometheus.yaml:ro
+      - /mnt/common_volume/swarm/grafana/config/web-config.yaml:/etc/prometheus/web-config.yaml:ro
+      - /mnt/common_volume/grafana/prometheus-data:/prometheus
+    user: "root"
+    # Uncomment for using docker secrets
+    #secrets:
+    #  - node_exporter_password
+    #  - grafana_prometheus_password
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yaml"
+      - "--web.config.file=/etc/prometheus/web-config.yaml"
+      - "--storage.tsdb.retention.time=7d"
+    deploy:
+      mode: replicated
+      replicas: 1
+      update_config:
+        order: stop-first
+      resources:
+        limits:
+          memory: 1024M
+          
+  pushgateway:
+    image: "prom/pushgateway:v1.6.2"
+    ports:
+      - 9091:9091
+    volumes:
+      - /mnt/common_volume/swarm/grafana/config/web-config.yaml:/etc/prometheus/web-config.yaml:ro
+    command:
+      - "--web.config.file=/etc/prometheus/web-config.yaml"
+    deploy:
+      mode: replicated
+      replicas: 1
+      update_config:
+        order: start-first
+      resources:
+        limits:
+          memory: 512M
+          
+  loki:
+    image: "grafana/loki:2.9.0"
+    #  - "3100:3100" port closed because loki does not support basic auth
+    volumes:
+      # touch /mnt/common_volume/swarm/grafana/config/loki.yaml;
+      # mkdir -p /mnt/common_volume/grafana/loki-data;
+      - /mnt/common_volume/swarm/grafana/config/loki.yaml:/etc/loki/loki.yaml:ro
+      - /mnt/common_volume/grafana/loki-data:/loki
+    command: 
+      - "--config.file=/etc/loki/loki.yaml"
+    user: "root"
+    deploy:
+      mode: replicated
+      replicas: 1
+      update_config:
+        order: stop-first
+      resources:
+        limits:
+          memory: 1024M
+          
+  promtail:
+    image: "grafana/promtail:2.9.0"
+    volumes:
+      # touch /mnt/common_volume/swarm/grafana/config/promtail.yaml;
+      # mkdir -p /mnt/common_volume/grafana/promtail-data;
+      - /mnt/common_volume/swarm/grafana/config/promtail.yaml:/etc/promtail/promtail.yaml:ro
+      - /mnt/common_volume/grafana/promtail-data:/var/promtail
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/log:/var/log:ro
+    environment:
+      HOST_HOSTNAME: "{{.Node.Hostname}}"
+    command:
+      - "--config.file=/etc/promtail/promtail.yaml"
+      - "--config.expand-env=true"
+    deploy:
+      mode: global
+      update_config:
+        order: stop-first
+      resources:
+        limits:
+          memory: 512M
+
+# Uncomment for using docker secrets
+# create docker secret first: docker secret create [OPTIONS] SECRET [file|-]
+# https://docs.docker.com/engine/reference/commandline/secret_create/
+# if you create secret from stdin use Ctrl+D after input, do not use Enter
+#secrets:
+#  grafana_database_password:
+#    external: true
+#  node_exporter_password:
+#    external: true
+#  grafana_prometheus_password:
+#    external: true
