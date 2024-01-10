@@ -56,7 +56,7 @@ services:
   prometheus:
     image: "prom/prometheus:v2.48.0"
     ports:
-      - 9090:9090
+      - 9093:9093
     volumes:
       # touch /mnt/common_volume/swarm/grafana/config/{prometheus.yaml,web-config.yaml};
       # mkdir -p /mnt/common_volume/grafana/prometheus-data
@@ -84,7 +84,7 @@ services:
   pushgateway:
     image: "prom/pushgateway:v1.6.2"
     ports:
-      - 9091:9091
+      - 9094:9094
     volumes:
       - /mnt/common_volume/swarm/grafana/config/web-config.yaml:/etc/prometheus/web-config.yaml:ro
     command:
