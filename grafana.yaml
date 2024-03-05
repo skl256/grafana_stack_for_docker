@@ -25,7 +25,7 @@ services:
       #GF_DATABASE_HOST: "postgres:5432" # change "postgres:5432" to your PostgreSQL database host and port
       #GF_DATABASE_NAME: "postgres" # change "postgres" to your database name
       #GF_DATABASE_USER: "postgres" # change "postgres" to your database user name
-      #GF_DATABASE_PASSWORD: "postgres" change "postgres" to your database password # or use GF_DATABASE_PASSWORD
+      #GF_DATABASE_PASSWORD: "postgres" # change "postgres" to your database password # or use GF_DATABASE_PASSWORD
       #GF_DATABASE_PASSWORD__FILE: "/run/secrets/grafana_database_password" # for docker secrets # or use GF_DATABASE_PASSWORD
       #GF_DATABASE_SSL_MODE: "disable"
     # Uncomment for using docker secrets 
